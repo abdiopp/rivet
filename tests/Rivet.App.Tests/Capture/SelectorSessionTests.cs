@@ -227,13 +227,13 @@ public class SelectorSessionTests
         session.OnPointerMoved(new PointD(960, 600), KeyModifiers.None);
         session.OnKey(SelectorKey.Z, KeyAction.Down, KeyModifiers.None);
         Dispatcher.UIThread.RunJobs();
-        var hover = overlay.CaptureRenderedFrame();
+        using var hover = overlay.CaptureRenderedFrame();
         hover!.Save(Path.Combine(TestApp.SnapshotDirectory, $"capture-overlay-hover-{theme}.png"));
 
         session.OnPointerPressed(new PointD(700, 300), KeyModifiers.None);
         session.OnPointerMoved(new PointD(1180, 640), KeyModifiers.None);
         Dispatcher.UIThread.RunJobs();
-        var drag = overlay.CaptureRenderedFrame();
+        using var drag = overlay.CaptureRenderedFrame();
         drag!.Save(Path.Combine(TestApp.SnapshotDirectory, $"capture-overlay-drag-{theme}.png"));
 
         session.OnKey(SelectorKey.Escape, KeyAction.Down, KeyModifiers.None);

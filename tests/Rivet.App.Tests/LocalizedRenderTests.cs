@@ -67,7 +67,7 @@ public class LocalizedRenderTests
                 settings.Navigate(page.Id);
                 var window = new SettingsWindow(settings) { Width = 1080, Height = 900 };
                 window.Show();
-                var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
+                using var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
                 Assert.NotNull(frame);
                 frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"l10n-{code}-settings-{page.Id}.png"));
                 window.Close();

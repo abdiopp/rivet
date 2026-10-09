@@ -60,7 +60,7 @@ public class RecordingEditorTests
     private static void Snapshot(Window window, string name)
     {
         Pump(() => false, TimeSpan.FromMilliseconds(150));
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, name + ".png"));
     }

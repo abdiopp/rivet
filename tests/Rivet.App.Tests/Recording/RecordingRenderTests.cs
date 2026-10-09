@@ -46,7 +46,7 @@ public class RecordingRenderTests
         discard.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Assert.True(view.IsConfirmingDiscard);
         Assert.Equal(0, confirmed);
-        var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
+        using var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, "recording-indicator-discard.png"));
         discard.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Assert.Equal(1, confirmed);
@@ -102,7 +102,7 @@ public class RecordingRenderTests
         Assert.Equal(RecordingModule.SettingsPageId, vm.CurrentPageId);
         var window = new SettingsWindow(vm) { Width = 1080, Height = 1300, RequestedThemeVariant = theme == "dark" ? ThemeVariant.Dark : ThemeVariant.Light };
         window.Show();
-        var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
+        using var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
         Assert.NotNull(frame);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"recording-settings-{theme}.png"));
         window.Close();

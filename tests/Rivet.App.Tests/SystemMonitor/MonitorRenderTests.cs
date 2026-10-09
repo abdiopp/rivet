@@ -117,7 +117,7 @@ public class MonitorRenderTests
         Assert.NotNull(edit);
         edit!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Assert.NotNull(FindButton(section, "win.shell.reset"));
-        var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
+        using var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
         Assert.NotNull(frame);
 #pragma warning disable CS0618
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"monitor-system-edit-{theme}.png"));

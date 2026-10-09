@@ -90,7 +90,7 @@ public class EditorWindowTests
     private static string Save(Window window, string name)
     {
         Dispatcher.UIThread.RunJobs();
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         var path = Path.Combine(TestApp.SnapshotDirectory, name + ".png");
         frame!.Save(path);

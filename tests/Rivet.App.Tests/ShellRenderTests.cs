@@ -77,7 +77,7 @@ public class ShellRenderTests
         Assert.Equal(pageId, vm.CurrentPageId);
         var window = new SettingsWindow(vm) { Width = 1080, Height = 900 };
         window.Show();
-        var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
+        using var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
         Assert.NotNull(frame);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"settings-{pageId}.png"));
         window.Close();
@@ -93,7 +93,7 @@ public class ShellRenderTests
         var window = new OnboardingWindow(host.Services);
         window.Show(step);
         window.Show();
-        var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
+        using var frame = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
         Assert.NotNull(frame);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"onboarding-{step}.png"));
         window.Close();

@@ -103,7 +103,7 @@ public class MediaToolsRenderTests
 
         Dispatcher.UIThread.RunJobs();
         window.CaptureRenderedFrame();
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"media-window-image-{theme}.png"));
         window.Close();
@@ -172,7 +172,7 @@ public class MediaToolsRenderTests
             Assert.Equal(MediaToolsModule.PageId, vm.CurrentPageId);
             var window = new SettingsWindow(vm) { Width = 1080, Height = 1100, RequestedThemeVariant = theme == "dark" ? ThemeVariant.Dark : ThemeVariant.Light };
             window.Show();
-            var frame = window.CaptureRenderedFrame();
+            using var frame = window.CaptureRenderedFrame();
             Assert.NotNull(frame);
             frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"settings-mediaTools-{theme}.png"));
             window.Close();

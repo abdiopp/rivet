@@ -36,7 +36,7 @@ public class ScratchpadRenderTests
 
     private static void Save(Window window, string name)
     {
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, name + ".png"));
     }

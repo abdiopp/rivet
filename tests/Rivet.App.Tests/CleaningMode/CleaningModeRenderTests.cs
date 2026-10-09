@@ -53,7 +53,7 @@ public class CleaningModeRenderTests
             Assert.Equal(CleaningModeModule.PageId, vm.CurrentPageId);
             var window = new SettingsWindow(vm) { Width = 1080, Height = 760, RequestedThemeVariant = theme == "dark" ? ThemeVariant.Dark : ThemeVariant.Light };
             window.Show();
-            var frame = window.CaptureRenderedFrame();
+            using var frame = window.CaptureRenderedFrame();
             Assert.NotNull(frame);
             frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"settings-cleaningMode-{theme}.png"));
             window.Close();

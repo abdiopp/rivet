@@ -42,7 +42,7 @@ public class CaptureSnapshotTests
     {
         window.RequestedThemeVariant = theme;
         window.Show();
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, name + ".png"));
         window.Close();
@@ -178,7 +178,7 @@ public class CaptureSnapshotTests
 
         var countdown = new CountdownWindow();
         countdown.ShowValue(3);
-        var frame = countdown.CaptureRenderedFrame();
+        using var frame = countdown.CaptureRenderedFrame();
         frame?.Save(Path.Combine(TestApp.SnapshotDirectory, $"capture-countdown-{theme}.png"));
         countdown.Stop();
     }

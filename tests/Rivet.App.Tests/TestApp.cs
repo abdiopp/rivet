@@ -69,7 +69,7 @@ public static class TestApp
 
         window.Bind(Window.BackgroundProperty, window.GetResourceObservable("WindowBackgroundBrush").ToBinding());
         window.Show();
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         var path = Path.Combine(SnapshotDirectory, name + ".png");
         frame!.Save(path);

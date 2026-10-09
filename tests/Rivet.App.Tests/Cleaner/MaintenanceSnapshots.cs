@@ -58,7 +58,7 @@ internal static class MaintenanceSnapshots
         var window = new SettingsWindow(vm) { Width = 1080, Height = height, RequestedThemeVariant = theme };
         window.Show();
         Settle();
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         var path = Path.Combine(TestApp.SnapshotDirectory, name + ".png");
         frame!.Save(path);

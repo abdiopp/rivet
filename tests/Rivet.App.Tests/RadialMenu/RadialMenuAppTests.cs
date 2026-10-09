@@ -270,7 +270,7 @@ public sealed class RadialMenuAppTests : IDisposable
             Assert.Equal(RadialMenuModule.PageId, vm.CurrentPageId);
             var window = new SettingsWindow(vm) { Width = 1080, Height = 1400, RequestedThemeVariant = theme == "dark" ? ThemeVariant.Dark : ThemeVariant.Light };
             window.Show();
-            var frame = window.CaptureRenderedFrame();
+            using var frame = window.CaptureRenderedFrame();
             Assert.NotNull(frame);
             frame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"settings-radialMenu-{theme}.png"));
             window.Close();
@@ -281,7 +281,7 @@ public sealed class RadialMenuAppTests : IDisposable
                 RequestedThemeVariant = theme == "dark" ? ThemeVariant.Dark : ThemeVariant.Light,
             };
             editor.Show();
-            var editorFrame = editor.CaptureRenderedFrame();
+            using var editorFrame = editor.CaptureRenderedFrame();
             Assert.NotNull(editorFrame);
             editorFrame!.Save(Path.Combine(TestApp.SnapshotDirectory, $"radial-item-editor-{theme}.png"));
             Assert.Equal("https://example.org", editor.Item.Payload);

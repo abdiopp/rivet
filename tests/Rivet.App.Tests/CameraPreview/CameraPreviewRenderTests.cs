@@ -41,14 +41,14 @@ public class CameraPreviewRenderTests
         // The first capture can return the frame rendered before the latest changes (a live
         // video keeps the scene busy); the second one reflects them.
         window.CaptureRenderedFrame();
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         frame!.Save(Path.Combine(TestApp.SnapshotDirectory, name + ".png"));
     }
 
     private static int MaxPixel(Window window)
     {
-        var frame = window.CaptureRenderedFrame()!;
+        using var frame = window.CaptureRenderedFrame()!;
         using var locked = frame.Lock();
         var max = 0;
         var bytes = new byte[locked.RowBytes * locked.Size.Height];

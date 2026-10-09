@@ -42,7 +42,7 @@ public class ClipboardRenderTests
 
     internal static string SaveWindow(Window window, string name)
     {
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         var path = Path.Combine(TestApp.SnapshotDirectory, name + ".png");
         frame!.Save(path);
