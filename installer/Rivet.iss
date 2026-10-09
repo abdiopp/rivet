@@ -51,7 +51,7 @@ WizardStyle=modern
 CloseApplications=force
 RestartApplications=no
 MinVersion=10.0.19041
-LicenseFile=..\..\LICENSE
+LicenseFile=..\LICENSE
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
