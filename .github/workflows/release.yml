@@ -1,0 +1,140 @@
+name: Release
+
+# Push a tag like v0.2.0 (or v0.2.0-beta.1 for a pre-release), or run this
+# workflow by hand with a version. The in-app updater looks for the assets
+# named Rivet-<version>-win-<arch>-setup.exe in the newest release.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v (e.g. 0.2.0 or 0.2.0-beta.1)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      numeric: ${{ steps.v.outputs.numeric }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - id: v
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then raw="$INPUT_VERSION"; else raw="$REF_NAME"; fi
+          version="${raw#v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$raw' is not a version like 1.2.3 or 1.2.3-beta.1"; exit 1
+          fi
+          numeric="${version%%-*}"
+          prerelease=false; [[ "$version" == *-* ]] && prerelease=true
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "numeric=$numeric" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version (pre-release: $prerelease)"
+
+  build:
+    name: Build ${{ matrix.rid }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: windows-11-arm
+            rid: win-arm64
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      NUMERIC: ${{ needs.version.outputs.numeric }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Tests
+        run: dotnet test Rivet.slnx -c Release
+
+      - name: Publish
+        shell: pwsh
+        run: >
+          dotnet publish src/Rivet.App -f net10.0-windows10.0.22621.0 -c Release -r ${{ matrix.rid }} --self-contained
+          -p:Version=$env:VERSION -p:AssemblyVersion=$env:NUMERIC -p:FileVersion=$env:NUMERIC
+          -o publish/${{ matrix.rid }}
+
+      - name: Self-test
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "publish\${{ matrix.rid }}\Rivet.exe" -ArgumentList "--selftest" -NoNewWindow -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "Self-test failed with exit code $($p.ExitCode)" }
+
+      - name: Installer and portable zip
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
+          $arch = "${{ matrix.rid }}".Replace("win-", "")
+          & $iscc installer\Rivet.iss /DAppVersion=$env:VERSION /DArch=$arch /DSourceDir=..\publish\${{ matrix.rid }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path "publish\${{ matrix.rid }}\*" -DestinationPath "dist\Rivet-$env:VERSION-${{ matrix.rid }}-portable.zip"
+          Get-ChildItem dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.rid }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub release
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      PRERELEASE: ${{ needs.version.outputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - name: Create release
+        shell: bash
+        run: |
+          tag="v$VERSION"
+          flags=(--title "Rivet $VERSION" --generate-notes --target "$GITHUB_SHA")
+          [ "$PRERELEASE" = "true" ] && flags+=(--prerelease)
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::Release $tag already exists. Delete it or release a new version."; exit 1
+          fi
+          gh release create "$tag" dist/* "${flags[@]}"

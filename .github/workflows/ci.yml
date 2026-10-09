@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test and self-test (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: windows-11-arm
+            rid: win-arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build src/Rivet.App -f net10.0-windows10.0.22621.0 -c Release -r ${{ matrix.rid }}
+
+      - name: Tests
+        run: dotnet test Rivet.slnx -c Release
+
+      - name: Self-test
+        run: dotnet run --project src/Rivet.App -f net10.0-windows10.0.22621.0 -c Release -r ${{ matrix.rid }} --no-build -- --selftest
+
+      - name: Publish
+        run: dotnet publish src/Rivet.App -f net10.0-windows10.0.22621.0 -c Release -r ${{ matrix.rid }} --self-contained -o publish/${{ matrix.rid }}
+
+      - name: Installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
+          $arch = "${{ matrix.rid }}".Replace("win-", "")
+          & $iscc installer\Rivet.iss /DArch=$arch /DSourceDir=..\publish\${{ matrix.rid }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rivet-${{ matrix.rid }}
+          path: |
+            publish/${{ matrix.rid }}
+            dist/*.exe
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snapshots-${{ matrix.rid }}
+          path: tests/artifacts/snapshots
+          retention-days: 7
+          if-no-files-found: ignore
