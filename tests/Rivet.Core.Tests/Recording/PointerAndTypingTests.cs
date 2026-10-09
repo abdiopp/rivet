@@ -113,10 +113,16 @@ public class PointerRecorderTests
         var clock = new PauseClock();
         clock.Begin(QpcClock.Instance.Now);
         var recorder = new PointerRecorder(new TestCursor(), new FixedPointerRegion(new PixelRect(0, 0, 10, 10)), clock, QpcClock.Instance, new TestSystem(), new TestHooks(), 1);
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
         recorder.Start();
         Thread.Sleep(400);
         var track = recorder.Stop();
-        Assert.InRange(track.Samples.Count, 10, 60);
+        elapsed.Stop();
+
+        // Judge the rate over the time that really passed: a busy CI machine can oversleep a lot.
+        var hz = track.Samples.Count / elapsed.Elapsed.TotalSeconds;
+        Assert.True(track.Samples.Count >= 10, $"only {track.Samples.Count} samples in {elapsed.Elapsed.TotalMilliseconds:0} ms");
+        Assert.InRange(hz, 25, 160);
         Assert.True(track.Samples.Zip(track.Samples.Skip(1)).All(p => p.Second.Time > p.First.Time));
     }
 }
