@@ -48,7 +48,20 @@ jobs:
         run: |
           Get-ChildItem TestResults -Recurse -Filter "Sequence_*.xml" | ForEach-Object {
             "== $($_.Name)"
-            ([xml](Get-Content $_.FullName)).SelectNodes("//*[@Name]") | Select-Object -Last 10 | ForEach-Object { $_.GetAttribute("Name") }
+            # Tests that started but never finished: the one that crashed or hung.
+            ([xml](Get-Content $_.FullName)).SelectNodes("//Test[@Completed='False']") | ForEach-Object { $_.GetAttribute("DisplayName") }
+          }
+
+      - name: Managed stacks of a crashed test process
+        if: failure()
+        shell: pwsh
+        run: |
+          $dumps = @(Get-ChildItem TestResults -Recurse -Filter "*.dmp" -ErrorAction SilentlyContinue)
+          if ($dumps.Count -eq 0) { "No crash dump."; exit 0 }
+          dotnet tool install --global dotnet-dump
+          foreach ($dump in $dumps) {
+            "== $($dump.Name)"
+            dotnet-dump analyze $dump.FullName -c "clrthreads" -c "clrstack -all" -c "exit"
           }
 
       - uses: actions/upload-artifact@v7
