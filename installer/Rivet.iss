@@ -19,6 +19,12 @@
   #define SourceDir "..\publish\win-" + Arch
 #endif
 #define AppExe AppId + ".exe"
+; Inno Setup architecture identifiers: "x64compatible" (x64, also Arm64 via emulation) or "arm64".
+#if Arch == "arm64"
+  #define ArchId "arm64"
+#else
+  #define ArchId "x64compatible"
+#endif
 #define AppUserModelId AppId + ".Desktop"
 
 [Setup]
@@ -33,8 +39,8 @@ DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 DisableDirPage=yes
 PrivilegesRequired=lowest
-ArchitecturesAllowed={#Arch}compatible
-ArchitecturesInstallIn64BitMode={#Arch}compatible
+ArchitecturesAllowed={#ArchId}
+ArchitecturesInstallIn64BitMode={#ArchId}
 OutputDir=..\dist
 OutputBaseFilename={#AppId}-{#AppVersion}-win-{#Arch}-setup
 SetupIconFile=..\src\Rivet.App\Assets\app.ico

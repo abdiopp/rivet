@@ -42,6 +42,15 @@ jobs:
         # --blame-* records the test that was running if the test process crashes or hangs.
         run: dotnet test Rivet.slnx -c Release --blame-crash --blame-hang-timeout 5m --results-directory TestResults
 
+      - name: Show the tests running at a crash
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem TestResults -Recurse -Filter "Sequence_*.xml" | ForEach-Object {
+            "== $($_.Name)"
+            ([xml](Get-Content $_.FullName)).SelectNodes("//*[@Name]") | Select-Object -Last 10 | ForEach-Object { $_.GetAttribute("Name") }
+          }
+
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

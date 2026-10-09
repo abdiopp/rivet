@@ -11,6 +11,12 @@ namespace Rivet.Core.Agents;
 /// (System32, Windows 10+), macOS has <c>libsqlite3.dylib</c> and Linux
 /// <c>libsqlite3.so.0</c>. A bundled <c>e_sqlite3</c>/<c>sqlite3</c> is used
 /// when present. Without any library OpenCode is reported as unavailable.
+/// <para>
+/// On Windows the search never uses PATH: other programs put their own
+/// <c>sqlite3.dll</c> there (the AWS CLI does), and loading a stranger's build
+/// crashed the test host and would let any such DLL run inside the app. Bundled
+/// copies come only from the app's folder, the system copy only from System32.
+/// </para>
 /// </summary>
 public static class SqliteNative
 {
@@ -32,18 +38,8 @@ public static class SqliteNative
 
     private static Api? Load()
     {
-        string[] candidates = OperatingSystem.IsWindows()
-            ? ["e_sqlite3", "sqlite3", "winsqlite3"]
-            : OperatingSystem.IsMacOS()
-                ? ["libe_sqlite3", "/usr/lib/libsqlite3.dylib", "libsqlite3.dylib", "libsqlite3"]
-                : ["libe_sqlite3", "libsqlite3.so.0", "libsqlite3.so", "libsqlite3"];
-        foreach (var name in candidates)
+        foreach (var (name, handle) in Candidates())
         {
-            if (!NativeLibrary.TryLoad(name, typeof(SqliteNative).Assembly, null, out var handle) && !NativeLibrary.TryLoad(name, out handle))
-            {
-                continue;
-            }
-
             try
             {
                 return new Api(handle);
@@ -56,6 +52,41 @@ public static class SqliteNative
 
         Log.Warn("agents", "No SQLite library found; OpenCode usage cannot be read.");
         return null;
+    }
+
+    private static IEnumerable<(string Name, nint Handle)> Candidates()
+    {
+        var assembly = typeof(SqliteNative).Assembly;
+        if (OperatingSystem.IsWindows())
+        {
+            // Absolute paths only: a bare name lets Windows fall back to its default search, PATH included.
+            string[] paths =
+            [
+                Path.Combine(AppContext.BaseDirectory, "e_sqlite3.dll"),
+                Path.Combine(AppContext.BaseDirectory, "sqlite3.dll"),
+                Path.Combine(Environment.SystemDirectory, "winsqlite3.dll"),
+            ];
+            foreach (var path in paths)
+            {
+                if (File.Exists(path) && NativeLibrary.TryLoad(path, out var handle))
+                {
+                    yield return (path, handle);
+                }
+            }
+
+            yield break;
+        }
+
+        string[] names = OperatingSystem.IsMacOS()
+            ? ["libe_sqlite3", "/usr/lib/libsqlite3.dylib", "libsqlite3.dylib", "libsqlite3"]
+            : ["libe_sqlite3", "libsqlite3.so.0", "libsqlite3.so", "libsqlite3"];
+        foreach (var name in names)
+        {
+            if (NativeLibrary.TryLoad(name, assembly, null, out var handle) || NativeLibrary.TryLoad(name, out handle))
+            {
+                yield return (name, handle);
+            }
+        }
     }
 
     internal sealed class Api
