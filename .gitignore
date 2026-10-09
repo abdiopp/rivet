@@ -9,3 +9,4 @@ tests/**/snapshots/
 publish/
 dist/
 .DS_Store
+TestResults/

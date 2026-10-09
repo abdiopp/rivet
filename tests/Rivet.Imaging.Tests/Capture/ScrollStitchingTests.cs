@@ -247,22 +247,22 @@ public class ScrollStitchingTests
     {
         var page = Page(300, 800);
         var clock = TimeSpan.Zero;
-        var engine = new ScrollCaptureEngine(() => Frame(page, 0, 400), () => clock, (wait, _) =>
+        ScrollCaptureEngine? engine = null;
+
+        // The fake clock only moves inside the engine's own waits, so finish from there once a
+        // second has passed: a separate polling task can lose the race on a slow machine and let
+        // the engine run into its two-minute limit in fake time.
+        engine = new ScrollCaptureEngine(() => Frame(page, 0, 400), () => clock, (wait, _) =>
         {
             clock += wait;
-            return Task.CompletedTask;
-        });
-        var finishing = Task.Run(async () =>
-        {
-            while (clock < TimeSpan.FromSeconds(1))
+            if (clock >= TimeSpan.FromSeconds(1))
             {
-                await Task.Yield();
+                engine!.RequestFinish();
             }
 
-            engine.RequestFinish();
+            return Task.CompletedTask;
         });
         var result = await engine.RunAsync(TestContext.Current.CancellationToken);
-        await finishing;
         Assert.Equal(ScrollCaptureOutcome.Success, result.Outcome);
         Assert.Equal(400, result.Image!.Height);
     }

@@ -64,16 +64,25 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
       NUMERIC: ${{ needs.version.outputs.numeric }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
       - name: Tests
-        run: dotnet test Rivet.slnx -c Release
+        # --blame-* records the test that was running if the test process crashes or hangs.
+        run: dotnet test Rivet.slnx -c Release --blame-crash --blame-hang-timeout 5m --results-directory TestResults
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: test-results-${{ matrix.rid }}
+          path: TestResults
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Publish
         shell: pwsh
@@ -99,7 +108,7 @@ jobs:
           Compress-Archive -Path "publish\${{ matrix.rid }}\*" -DestinationPath "dist\Rivet-$env:VERSION-${{ matrix.rid }}-portable.zip"
           Get-ChildItem dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.rid }}
           path: dist/*
@@ -118,7 +127,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: dist

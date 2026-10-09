@@ -20,9 +20,19 @@ namespace Rivet.App.Tests.MediaTools;
 
 public class MediaToolsRenderTests
 {
+    /// <summary>Every Media setting: tests share one host, and presets (e.g. Social → PNG) would leak into the next test.</summary>
+    private static readonly string[] MediaKeys = typeof(MediaSettings)
+        .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+        .Select(f => f.GetValue(null)).OfType<SettingDefinition>().Select(d => d.Key).ToArray();
+
     private static MediaToolsService Service(MediaTool tool)
     {
         var host = TestApp.Host;
+        foreach (var key in MediaKeys)
+        {
+            host.Settings.Reset(key);
+        }
+
         host.Services.GetRequiredService<FeatureRuntime>().SetAvailable(FeatureIds.MediaTools, true);
         var service = host.Services.GetRequiredService<MediaToolsService>();
         service.ClearInputs();
